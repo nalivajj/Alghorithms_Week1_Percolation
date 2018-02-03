@@ -1,105 +1,84 @@
+import edu.princeton.cs.algs4.WeightedQuickUnionUF;
+
 /**
- * Created by naliv on 31.01.2018.
+ * Created by naliv on 03.02.2018.
  */
 public class Percolation {
-    private Site[] sites;
+    private final boolean[][] siteState;
+    private final WeightedQuickUnionUF weightedQuickUnionUF;
+    private int top = 0;
+    private int bottom;
     private int n;
-
-    private void checkIsCorrect (int row, int col) {
-        if (row > n  || row < 0 || col > n || col < 0) {
-            throw new IllegalArgumentException();
-        }
-    }
-
     public Percolation (int n) {
         if (n <= 0) {
             throw new IllegalArgumentException();
         }
+        siteState = new boolean[n][n];
+        for (int i = 0; i < n; i++) {
+            for(int j = 0; j < n; j++){
+                siteState[i][j] = false;
+            }
+        }
+        weightedQuickUnionUF = new WeightedQuickUnionUF(n*n+2);
         this.n = n;
-        sites = new Site[n*n];
-
-        int tempCount = 0;
-        for (int i = 0; i < n*n; i++, tempCount++) {
-            sites[i] = new Site();
-            sites[i].setValue(tempCount);
-        }
+        bottom = n * n + 1;
     }
-
-    public void union (int firstIndex, int secondIndex) {
-        int i = root(firstIndex);
-        int j = root(secondIndex);
-        sites[i].setValue(j);
-    }
-
-    public int root (int value) {
-        while (value != sites[value].getValue()) {
-            value = sites[value].getValue();
+    private void checkIsCorrect (int row, int col) {
+        if (row > siteState.length  || row <= 0 || col > siteState.length || col <= 0) {
+            throw new IllegalArgumentException();
         }
-        return value;
     }
     public void open (int row, int col) {
-        checkIsCorrect(row, col);
-        int tempValue = row*n+col;
-        sites[tempValue].setSiteState(Site.State.open);
-        if (row != 0) {
-            if (isOpen(row - 1, col)) {
-                union(tempValue, (row - 1) * n + col);
-            }
-        }
 
-        if (col != 4) {
-            if (isOpen(row, col + 1)) {
-                union(row * n + col + 1, tempValue);
-            }
+        siteState[row - 1][col - 1] = true;
+        int calculatedFirstIndex = calculateIndex(row, col);
+        if (row == 1) {
+            weightedQuickUnionUF.union(calculatedFirstIndex, top);
         }
-
-        if (row !=4 ) {
-            if (isOpen(row + 1, col)) {
-                union((row + 1) * n + col, tempValue);
-            }
+        if (row == n) {
+            weightedQuickUnionUF.union(calculatedFirstIndex, bottom);
         }
-
-        if (col!=0) {
-            if (isOpen(row, col - 1)) {
-                union(tempValue, row * n + col - 1);
-            }
+        if(row > 1 && isOpen(row-1,col)){
+            weightedQuickUnionUF.union(calculatedFirstIndex, calculateIndex(row-1, col));
         }
-
-        if (percolates()) {
-            System.out.println("BINGO");
+        if(row < n && isOpen(row+1,col)){
+            weightedQuickUnionUF.union(calculatedFirstIndex, calculateIndex(row+1,col));
+        }
+        if(col < n && isOpen(row,col+1)){
+            weightedQuickUnionUF.union(calculatedFirstIndex, calculateIndex(row, col+1));
+        }
+        if(col > 1 && isOpen(row,col-1)){
+            weightedQuickUnionUF.union(calculatedFirstIndex, calculateIndex(row, col-1));
         }
     }
 
     public boolean isOpen (int row, int col){
         checkIsCorrect(row, col);
-        int tempValue = row*n+col;
-        return sites[tempValue].getSiteState() == Site.State.open;
+        return siteState[row-1][col-1];
     }
 
-    /*public boolean isFull (int row, int col){
+    public boolean isFull (int row, int col){
         checkIsCorrect(row, col);
-    }*/
+        return weightedQuickUnionUF.connected(top, calculateIndex(row , col));
+    }
 
     public int numberOfOpenSites(){
         int numberOfOpen = 0;
-        for(int i = 0; i < sites.length; i++ ){
-            //TODO: add count number of open sites
+        for(int i = 0; i < n; i++ ){
+            for(int j = 0; j < n; j++) {
+                if (siteState[i][j]) {
+                    numberOfOpen++;
+                }
+            }
         }
         return numberOfOpen;
     }
 
-    public boolean percolates(){
-        int temp = n*n;
-        for(int i = temp-1; i > temp - n - 1 ; i--){
-            int rootValue = root(i);
-            if(rootValue >= 0 && rootValue < n ){
-                return true;
-            }
-        }
-        return false;
+    public boolean percolates() {
+        return weightedQuickUnionUF.connected(top, bottom);
     }
 
-    public static void main(String[] args) {
-        Percolation percolation = new Percolation(5);
+    private int calculateIndex(int i, int j) {
+        return n * (i - 1) + j;
     }
 }

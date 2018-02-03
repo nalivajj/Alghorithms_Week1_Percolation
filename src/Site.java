@@ -2,8 +2,8 @@
  * Created by naliv on 31.01.2018.
  */
 public class Site {
-    State siteState;
-    int value;
+    private State siteState;
+    private int value;
 
     Site(){
         siteState = State.blocked;
